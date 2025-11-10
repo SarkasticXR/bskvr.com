@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>BSK War Diary</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#0a0f1c; --bg2:#0f1730; --glass:rgba(255,255,255,.08); --stroke:rgba(255,255,255,.16);
+    --cyan:#19d8ff; --vio:#b721ff; --txt:#eef5ff; --mut:#a9bdd6; --warn:#ffd86b;
+    --cardShadow: 0 10px 30px rgba(0,0,0,.35), 0 0 30px rgba(25,216,255,.10);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--txt); font-family:Orbitron,Arial,sans-serif;
+    background:
+      radial-gradient(1200px 800px at 10% -10%, #1a2a55 0%, transparent 50%),
+      radial-gradient(900px 700px at 110% 0%, #3a175f 0%, transparent 60%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+    min-height:100dvh;
+  }
+  .wrap{max-width:1100px;margin:28px auto;padding:0 18px}
+  .glass{background:var(--glass); backdrop-filter: blur(10px); border:1px solid var(--stroke); border-radius:18px; box-shadow:var(--cardShadow)}
+  .card{padding:18px;margin:16px 0}
+  .row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .avatar{width:84px;height:84px;border-radius:50%;object-fit:cover;border:2px solid var(--cyan);background:#0c1330}
+  .btn{
+    background:linear-gradient(90deg,var(--cyan),var(--vio) 80%); color:#fff; border:none;
+    border-radius:12px; padding:10px 18px; cursor:pointer; font-weight:800; letter-spacing:.02em;
+    box-shadow:0 0 18px rgba(25,216,255,.35), 0 0 18px rgba(183,33,255,.25);
+    transition:transform .12s, filter .15s;
+  }
+  .btn:hover{filter:brightness(1.08); transform:translateY(-1px)}
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:14px}
+  .stat{padding:14px;text-align:center}
+  .stat .k{font-size:13px;color:var(--mut)}
+  .stat .v{font-size:22px}
+  .titleRow{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--stroke);background:rgba(255,255,255,.06);color:#cfe5ff}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:720px){ .grid{grid-template-columns:1fr} .stats{grid-template-columns:1fr 1fr} }
+  label{display:block;margin:6px 0 4px;color:#d9e8ff;font-size:12px;letter-spacing:.02em;opacity:.95}
+  input,select,textarea{
+    width:100%; padding:12px 12px; border-radius:12px; border:1px solid var(--stroke);
+    background:rgba(12,18,42,.75); color:#eef5ff; outline:none;
+    box-shadow: inset 0 0 10px rgba(25,216,255,.10);
+  }
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.09);font-size:14px}
+  th{color:var(--cyan);text-align:left}
+  td:last-child, th:last-child{text-align:right}
+  .mut{color:var(--mut);font-size:14.5px;line-height:1.8}
+  .warn{color:var(--warn)} .ok{color:#7dffa7}
+  #ticker-wrap{position:relative;overflow:hidden;height:42px;margin:14px 0;border-top:1px solid var(--stroke);border-bottom:1px solid var(--stroke)}
+  #ticker-track{position:absolute;white-space:nowrap;display:inline-block;line-height:42px;padding-left:100%;animation:ticker 28s linear infinite;font-weight:700}
+  #ticker-track span{margin-right:48px;color:#9fe7ff}
+  #ticker-track b{color:#ffd86b}
+  @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+  .playerCell{display:flex;align-items:center;gap:10px}
+  .pico{width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.25);background:#0c1330}
+  .hidden{display:none!important}
+  .editlink{font-size:12px;color:#9fe7ff;cursor:pointer;text-decoration:underline}
+  
+  /* --- STYLES FOR THE NEW SUBMISSION MODAL --- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-content {
+    max-width: 600px;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Header -->
+    <div class="glass card row">
+      <img id="avatar-img" class="avatar" src="https://via.placeholder.com/84" alt="avatar">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:24px">Dear Knight</div>
+        <div id="user-email" class="mut">—</div>
+      </div>
+      <label class="btn" style="position:relative;overflow:hidden">
+        Upload Avatar
+        <input id="avatar-input" type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer">
+      </label>
+      <button id="btn-signout" class="btn" type="button">Sign Out</button>
+    </div>
+
+    <!-- Weekly Challenge Songs -->
+    <div class="glass card">
+      <div class="titleRow">
+        <h3 style="margin:0">Weekly Challenge Songs</h3>
+        <span class="pill">used for this week's missions</span>
+        <span id="edit-challenges" class="editlink hidden">✎ edit</span>
+      </div>
+      <div id="challenges-view" class="row" style="gap:18px">
+        <div class="glass card" style="flex:1;min-width:260px">
+          <div class="k">Song Vanilla</div>
+          <div id="challenge-a" style="font-size:18px">—</div>
+        </div>
+        <div class="glass card" style="flex:1;min-width:260px">
+          <div class="k">Song Modded</div>
+          <div id="challenge-b" style="font-size:18px">—</div>
+        </div>
+      </div>
+      <div id="challenges-edit" class="grid hidden" style="margin-top:10px">
+        <div>
+          <label>Song Vanilla</label>
+          <input id="ch-a" placeholder="e.g. Camellia — Crystallized">
+        </div>
+        <div>
+          <label>Song Modded</label>
+          <input id="ch-b" placeholder="e.g. DJ Y — Accel World (mod chart)">
+        </div>
+        <div style="grid-column:1/-1" class="row">
+          <button class="btn" id="save-ch">Save Songs</button>
+          <button class="btn" id="cancel-ch" type="button">Cancel</button>
+          <div class="mut">If the API does not provide challenges yet, these are saved locally in your browser.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="glass card">
+      <div class="stats">
+        <div class="stat"><div class="k">Weekly Total</div><div class="v" id="stat-weekly">0</div></div>
+        <div class="stat"><div class="k">Weekly Rank (V / M)</div><div class="v" id="stat-rank">#— / #—</div></div>
+        <div class="stat"><div class="k">Daily Streak</div><div class="v" id="stat-streak">0</div></div>
+        <div class="stat"><div class="k">WarCoins</div><div class="v" id="stat-coins">0</div></div>
+      </div>
+    </div>
+
+    <!-- Admin: Register New Member -->
+    <div id="allowlist-card" class="glass card hidden">
+      <div class="titleRow">
+        <h3 style="margin:0">Register New Member</h3>
+        <span class="pill">admin-only</span>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input id="allowlist-email" placeholder="Enter email address">
+        <button class="btn" id="btn-add-member" type="button">Add Member</button>
+      </div>
+      <div id="allowlist-msg" class="warn" style="margin-top:8px"></div>
+    </div>
+
+    <!-- Shout -->
+    <div class="glass card">
+      <div class="titleRow">
+        <h3 style="margin:0">Shout (spend 1 WarCoin)</h3>
+        <span class="pill">shows in the live ticker</span>
+      </div>
+      <textarea id="f-shout" rows="2" placeholder="Your message (max 150 chars)"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="btn-shout" type="button">Post Shout</button>
+        <div id="shout-msg" class="warn"></div>
+      </div>
+    </div>
+
+    <!-- WEEKLY Scoreboards -->
+    <div class="glass card">
+      <div class="titleRow">
+        <h3 style="margin:0">Live Scoreboard — Original (vanilla)</h3>
+        <span class="pill">weekly totals • refresh ~12h</span>
+      </div>
+      <table>
+        <thead><tr><th>#</th><th>Player</th><th>Total Pts</th></tr></thead>
+        <tbody id="sb-vanilla"></tbody>
+      </table>
+      <div id="sbv-error" class="warn" style="margin-top:8px"></div>
+      <button class="btn" id="btn-add-vanilla" style="margin-top:14px;">+ Add Vanilla Score</button>
+    </div>
+
+    <div class="glass card">
+      <div class="titleRow">
+        <h3 style="margin:0">Live Scoreboard — Modded</h3>
+        <span class="pill">weekly totals • refresh ~12h</span>
+      </div>
+      <table>
+        <thead><tr><th>#</th><th>Player</th><th>Total Pts</th></tr></thead>
+        <tbody id="sb-modded"></tbody>
+      </table>
+      <div id="sbm-error" class="warn" style="margin-top:8px"></div>
+      <button class="btn" id="btn-add-modded" style="margin-top:14px;">+ Add Modded Score</button>
+    </div>
+
+    <!-- Shouts Ticker -->
+    <div id="ticker-wrap" class="glass">
+      <div id="ticker-track"></div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="glass card">
+      <h3 style="margin:0 0 10px">Mission Timeline</h3>
+      <div id="timeline">—</div>
+    </div>
+  </div>
+
+  <!-- NEW HIDDEN MODAL FORM -->
+  <div id="modal-submit" class="modal-overlay hidden">
+    <div class="modal-content glass card">
+      <h3 id="modal-title" style="margin-top:0;">Submit Score</h3>
+      <div class="grid">
+        <div>
+          <label>Song</label>
+          <input id="f-song" placeholder="Song name">
+        </div>
+        <div>
+          <label>Difficulty</label>
+          <select id="f-diff">
+            <option>Easy</option><option>Normal</option><option>Hard</option>
+            <option>Expert</option><option>Expert+</option>
+          </select>
+        </div>
+        <div>
+          <label>Score</label>
+          <input id="f-score" type="number" min="0" step="1" placeholder="e.g. 123456">
+        </div>
+        <div>
+          <label>Modifiers (optional)</label>
+          <input id="f-mods" placeholder="Comma separated (e.g. FS, DA)">
+        </div>
+        <div style="grid-column: 1 / -1;">
+          <label>Proof Screenshot (optional)</label>
+          <input id="f-proof" type="file" accept="image/*">
+          <div id="proof-preview" style="margin-top:8px"></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px; justify-content: space-between;">
+        <div class="row">
+            <button class="btn" id="btn-submit-run" type="button">Submit Score</button>
+            <button class="btn" id="btn-cancel-run" type="button" style="background: var(--mut)">Cancel</button>
+        </div>
+        <div id="submit-msg" class="warn"></div>
+      </div>
+    </div>
+  </div>
+
+
+<script>
+  const API = 'https://bsk-tournament-api-71dff3548c80.herokuapp.com/api';
+  const ADMIN_EMAILS = ['sir_admin@bskvr.com', 'szuromee@gmail.com', 'starbright79@hotmail.com'];
+  // Endpoint for allowlisting new members by admins
+  const ALLOWLIST_ENDPOINT = '/allowlist';
+
+  const $ = s => document.querySelector(s);
+  const escapeHtml = s => String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  function nickFromEmail(email){ if(!email) return 'Anon'; const i=email.indexOf('@'); return i>0?email.slice(0,i):email; }
+  function getToken(){ return localStorage.getItem('BSK_token')||''; }
+  function authHeaders(){ return { 'Content-Type':'application/json', 'Authorization':'Bearer '+getToken() }; }
+  function signOut(){ try{ localStorage.removeItem('BSK_token'); localStorage.removeItem('BSK_email'); localStorage.removeItem('BSK_profile'); }catch(_){} window.location.replace('playersCHECKIN.html'); }
+  $('#btn-signout').addEventListener('click', signOut);
+
+  async function apiRequest(path, method='GET', body=null){
+    const opts={ method, headers: authHeaders(), cache:'no-store' };
+    if(body) opts.body=JSON.stringify(body);
+    const res = await fetch(`${API}${path}${path.includes('?')?'&':'?'}t=${Date.now()}`, opts);
+    if(res.status===401||res.status===403){ signOut(); return null; }
+    return res;
+  }
+
+  /* Profile */
+  let CURRENT_EMAIL = '';
+  async function loadProfile(){
+    try{
+      const r = await apiRequest('/profile'); if(!r) return;
+      const d = await r.json();
+      const email = d.email || '';
+      CURRENT_EMAIL = email.toLowerCase();
+      $('#user-email').textContent = d.nickname || d.email || '—';
+      const avatarUrl = d.avatar || d.avatarUrl || d.url || 'https://via.placeholder.com/84';
+      $('#avatar-img').src = avatarUrl + (avatarUrl.includes('?')?'&':'?') + 't=' + Date.now();
+      $('#stat-streak').textContent= d.dailyStreak ?? 0;
+      const submitted = Number(d.scoresSubmittedToday ?? 0);
+      const shouts    = Number(d.shoutsMadeToday    ?? 0);
+      const coins     = Number.isFinite(d.warCoins) ? d.warCoins : (submitted - shouts);
+      $('#stat-coins').textContent = coins;
+
+      // --- ОБНОВЕНА "БРОНИРАНА" ПРОВЕРКА ---
+      if (ADMIN_EMAILS.includes(CURRENT_EMAIL)) {
+        $('#edit-challenges').classList.remove('hidden');
+        // show admin allowlist card if admin
+        const allowCard = document.getElementById('allowlist-card');
+        if (allowCard) allowCard.classList.remove('hidden');
+      } else {
+        $('#edit-challenges').classList.add('hidden');
+        const allowCard = document.getElementById('allowlist-card');
+        if (allowCard) allowCard.classList.add('hidden');
+      }
+    }catch(e){ console.warn('Profile load error', e); }
+  }
+  
+  /* Avatar upload */
+  $('#avatar-input').addEventListener('change', ev=>{
+    const f=ev.target.files?.[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=async ()=>{
+      const r=await apiRequest('/avatar','POST',{ avatarData:rd.result });
+      if(!r) return; const d=await r.json();
+      const url = d.avatar || d.avatarUrl || d.url;
+      if(url){ $('#avatar-img').src = url + (url.includes('?')?'&':'?') + 't=' + Date.now(); }
+      await loadProfile(); await loadBothBoards();
+    };
+    rd.readAsDataURL(f);
+  });
+
+  /* Weekly challenges */
+  const CH_KEY = 'BSK_challenges';
+  async function loadChallenges(){
+    let A='',B='';
+    try{
+      const r = await apiRequest('/challenges');
+      if (r && r.ok) { const d = await r.json(); A = d.songVanilla || d.songA || ''; B = d.songModded || d.songB || ''; }
+    }catch(_){}
+    if(!A && !B){
+      try{ const loc = JSON.parse(localStorage.getItem(CH_KEY)||'{}'); A=loc.a||''; B=loc.b||''; }catch(_){}
+    }
+    $('#challenge-a').textContent = A||'—';
+    $('#challenge-b').textContent = B||'—';
+  }
+
+  function openChallengesEdit(){
+    $('#challenges-edit').classList.remove('hidden'); $('#challenges-view').classList.add('hidden');
+    $('#ch-a').value = $('#challenge-a').textContent==='—'?'':$('#challenge-a').textContent;
+    $('#ch-b').value = $('#challenge-b').textContent==='—'?'':$('#challenge-b').textContent;
+  }
+  function closeChallengesEdit(){
+    $('#challenges-edit').classList.add('hidden');
+    $('#challenges-view').classList.remove('hidden');
+  }
+  $('#edit-challenges').addEventListener('click', openChallengesEdit);
+  $('#cancel-ch').addEventListener('click', closeChallengesEdit);
+  $('#save-ch').addEventListener('click', async()=>{
+    const a = ($('#ch-a').value||'').trim();
+    const b = ($('#ch-b').value||'').trim();
+    try{ await apiRequest('/challenges','POST',{ songVanilla:a, songModded:b }); }catch(_){}
+    localStorage.setItem(CH_KEY, JSON.stringify({a,b}));
+    $('#challenge-a').textContent = a||'—';
+    $('#challenge-b').textContent = b||'—';
+    closeChallengesEdit();
+  });
+
+  // --- Allowlist member registration for admins ---
+  const addMemberBtn = document.getElementById('btn-add-member');
+  if (addMemberBtn) {
+    addMemberBtn.addEventListener('click', async () => {
+      const msgEl = document.getElementById('allowlist-msg');
+      const emailInput = document.getElementById('allowlist-email');
+      const email = (emailInput?.value || '').trim().toLowerCase();
+      if (!email) {
+        msgEl.className = 'warn';
+        msgEl.textContent = 'Please enter an email address.';
+        return;
+      }
+      msgEl.className = 'warn';
+      msgEl.textContent = 'Adding…';
+      try {
+        const res = await apiRequest(ALLOWLIST_ENDPOINT, 'POST', { email });
+        if (res && res.ok) {
+          msgEl.className = 'ok';
+          msgEl.textContent = 'Member added!';
+          if (emailInput) emailInput.value = '';
+        } else {
+          let err = '';
+          if (res) {
+            try { const data = await res.json(); err = data.error || data.message || ''; } catch {}
+          }
+          msgEl.className = 'warn';
+          msgEl.textContent = err || 'Failed to add member.';
+        }
+      } catch (e) {
+        msgEl.className = 'warn';
+        msgEl.textContent = 'Error adding member.';
+      }
+    });
+  }
+  
+  /* --- SUBMISSION LOGIC (FINAL CORRECTED VERSION) --- */
+
+  let proofBase64 = null;
+
+  function showSubmitModal(board) {
+    $('#modal-submit').dataset.board = board; 
+    $('#modal-title').textContent = `Submit to ${board.charAt(0).toUpperCase() + board.slice(1)} Scoreboard`;
+    $('#modal-submit').classList.remove('hidden');
+  }
+
+  function hideSubmitModal() {
+    $('#modal-submit').classList.add('hidden');
+    $('#modal-submit').dataset.board = ''; 
+    $('#f-song').value=''; $('#f-score').value=''; $('#f-mods').value='';
+    $('#f-proof').value = '';
+    proofBase64=null; $('#proof-preview').innerHTML='';
+    $('#submit-msg').textContent = '';
+  }
+
+  $('#btn-add-vanilla').addEventListener('click', () => showSubmitModal('vanilla'));
+  $('#btn-add-modded').addEventListener('click', () => showSubmitModal('modded'));
+  $('#btn-cancel-run').addEventListener('click', hideSubmitModal);
+
+  $('#f-proof').addEventListener('change', ev=>{
+    const f = ev.target.files?.[0];
+    if(!f){ proofBase64=null; $('#proof-preview').innerHTML=''; return; }
+    const rd=new FileReader();
+    rd.onload=()=>{ proofBase64=rd.result; $('#proof-preview').innerHTML=`<img src="${rd.result}" style="max-width:240px;border-radius:10px;border:1px solid rgba(255,255,255,.2)">`; };
+    rd.readAsDataURL(f);
+  });
+
+  async function trySubmitToMultiple(endpoints, payload) {
+    for (const path of endpoints) {
+      try {
+        const r = await apiRequest(path, 'POST', payload);
+        if (r && r.ok) {
+          const text = await r.text();
+          let d; try { d = JSON.parse(text); } catch { d = { success: false, error: text }; }
+          if (d.success) return { success: true };
+        }
+      } catch (e) { console.warn(`Failed attempt at ${path}`); }
+    }
+    return { success: false, error: 'All submission attempts failed.' };
+  }
+
+  $('#btn-submit-run').addEventListener('click', async()=>{
+    const submissionBoard = $('#modal-submit').dataset.board;
+    
+    if (!submissionBoard) {
+        alert('Error: Submission board type not found. Please close and reopen the form.');
+        return;
+    }
+
+    const song = ($('#f-song').value||'').trim();
+    const difficulty = ($('#f-diff').value||'').trim();
+    const score = Number.parseInt(($('#f-score').value||'').trim(), 10);
+    const msg = $('#submit-msg');
+
+    msg.className='warn';
+    if(!song || !difficulty || !Number.isFinite(score) || score<=0){
+      msg.textContent='Please fill Song, Difficulty, and a positive Score.'; return;
+    }
+
+    let mods = ($('#f-mods').value||'').split(',').map(s=>s.trim()).filter(Boolean);
+    mods = mods.filter(m => !m.toUpperCase().startsWith('BOARD:'));
+
+    if (submissionBoard === 'modded') {
+      mods.push('BOARD:MODDED');
+    } else {
+      mods.push('BOARD:VANILLA');
+    }
+
+    const payload = { song, difficulty, score, board: submissionBoard, modifiers: mods };
+    if (proofBase64) payload.proofData = proofBase64;
+
+    msg.textContent='Submitting…';
+
+    let submissionEndpoints = [];
+    if (submissionBoard === 'modded') {
+      submissionEndpoints = [ '/scoreboard/modded', '/submit-score/modded', '/submit-score' ];
+    } else {
+      submissionEndpoints = [ '/scoreboard/vanilla', '/submit-score' ];
+    }
+
+    const result = await trySubmitToMultiple(submissionEndpoints, payload);
+    
+    if(result.success){
+      msg.className='ok'; msg.textContent='Submitted!';
+      hideSubmitModal();
+      optimisticallyUpdateBoard(payload);
+      await loadProfile();
+      await loadTimeline();
+    } else {
+      msg.className='warn'; msg.textContent = result.error || 'Submission failed on server.';
+    }
+  });
+
+  /* Shout */
+  $('#btn-shout').addEventListener('click', async()=>{
+    const message=($('#f-shout').value||'').trim().slice(0,150);
+    const el=$('#shout-msg'); if(!message){ el.textContent='Enter a message.'; return; }
+    el.textContent='Posting…';
+    const r=await apiRequest('/shout','POST',{ message }); if(!r) return; const d=await r.json();
+    if(d.success){ el.className='ok'; el.textContent='Shout posted (-1).'; $('#f-shout').value=''; await loadProfile(); await loadShoutsAll(); }
+    else { el.className='warn'; el.textContent=d.error||'Failed.'; }
+  });
+
+  /* Timeline */
+  async function loadTimeline(){
+    const box=$('#timeline');
+    const r=await apiRequest('/scores'); if(!r){ box.textContent='—'; return; }
+    const list=await r.json();
+    if(!list.length){ box.textContent='No entries yet.'; return; }
+    box.innerHTML=list.map(e=>`
+      <div class="glass card" style="margin:10px 0">
+        <div class="row" style="justify-content:space-between">
+          <div><b>${escapeHtml(e.song??'Unknown')}</b> — ${escapeHtml(e.difficulty??'')} — <span>${e.score??''}</span></div>
+          <button class="btn" type="button" onclick="deleteScore('${e.id||e._id}')">Delete Run</button>
+        </div>
+        ${(e.proofData||e.proofUrl)?`<img src="${e.proofData||e.proofUrl}" style="margin-top:8px;max-width:260px;border-radius:10px;border:1px solid rgba(255,255,255,.2)">`:''}
+      </div>
+    `).join('');
+  }
+  async function deleteScore(id){
+    if(!confirm('Delete this run? (-1 WarCoin)')) return;
+    const r=await apiRequest('/score/'+id,'DELETE'); if(!r) return; const d=await r.json();
+    if(d.success){ await refreshEverythingNow(); } else alert(d.error||'Delete failed');
+  }
+
+  function optimisticallyUpdateBoard(payload) {
+    const board = payload.board;
+    if (!board) return;
+
+    const list = board === 'vanilla' ? LAST_ROWS_V : LAST_ROWS_M;
+    const tbodyId = board === 'vanilla' ? '#sb-vanilla' : '#sb-modded';
+    const userEmail = CURRENT_EMAIL;
+
+    let userRow = list.find(p => p.email === userEmail);
+
+    if (userRow) {
+      userRow.total = (userRow.total || 0) + payload.score;
+    } else {
+      const nickname = nickFromEmail(userEmail);
+      userRow = {
+        name: nickname,
+        email: userEmail,
+        total: payload.score,
+        avatar: $('#avatar-img').src
+      };
+      list.push(userRow);
+    }
+    
+    list.sort((a, b) => (b.total || 0) - (a.total || 0));
+    renderRows(tbodyId, list);
+    updateWeeklyStatsFromBoards();
+  }
+    /* Boards & Ticker */
+
+  function getBoardOf(rec){
+    // 1. Проверяваме за новото поле `board`, което идва от сървъра.
+    const boardProp = (rec.board || '').toLowerCase();
+    if (boardProp === 'modded') {
+      return 'modded';
+    }
+
+    // 2. Ако полето `board` го няма (за стари записи), проверяваме за стари етикети в modifiers.
+    const modsRaw = rec.modifiers ?? rec.tags ?? [];
+    const mods = Array.isArray(modsRaw) ? modsRaw : String(modsRaw).split(',');
+    const norm = mods.map(m => String(m||'').toUpperCase().trim());
+    
+    if (norm.includes('BOARD:MODDED')) {
+      return 'modded';
+    }
+
+    // 3. Във всички останали случаи, резултатът е 'vanilla'.
+    return 'vanilla';
+  }
+  async function fetchAllScores(){
+      const endpoints = ['/scoreboard', '/scores', '/leaderboard'];
+      for (const ep of endpoints) {
+          try {
+              const r = await apiRequest(ep);
+              if (r && r.ok) {
+                  const data = await r.json();
+                  const list = data.topPlayers || data.players || data.rows || data.entries || data.scores || data.list || data;
+                  if (Array.isArray(list)) return list;
+              }
+          } catch (_) { /* continue */ }
+      }
+      return [];
+  }
+
+  function normalizeRowForDisplay(p){
+    const email  = (p.email || '').toLowerCase();
+    const name   = p.player || p.nickname || (p.email ? p.email.split('@')[0] : 'Anon');
+    const total  = Number(p.totalScore ?? p.score ?? 0) || 0;
+    const avatar = p.avatar || p.avatarUrl || p.url || '';
+    return { email, name, total, avatar };
+  }
+
+  function groupSort(players, boardWanted){
+    const map = new Map();
+    (players || []).forEach(p=>{
+      const detected = getBoardOf(p);
+      if (detected !== boardWanted) return;
+
+      const norm = normalizeRowForDisplay(p);
+      const key  = norm.email || norm.name.toLowerCase() || 'anon';
+      const cur  = map.get(key) || { name:norm.name, email:norm.email, total:0, avatar:norm.avatar };
+      cur.total += norm.total;
+      if (!cur.avatar && norm.avatar) cur.avatar = norm.avatar;
+      map.set(key, cur);
+    });
+    const arr = Array.from(map.values());
+    arr.sort((a,b)=>(b.total||0)-(a.total||0));
+    return arr;
+  }
+
+  function renderRows(tbodyId, rows){
+    const tb = $(tbodyId);
+    tb.innerHTML = rows.length ? rows.map((p,i)=>{
+      const av = p.avatar ? `${p.avatar}${p.avatar.includes('?')?'&':'?'}t=${(Date.now()%1e7)}` : 'https://via.placeholder.com/26';
+      return `<tr>
+        <td>${i+1}</td>
+        <td><div class="playerCell"><img class="pico" src="${av}" onerror="this.src='https://via.placeholder.com/26'">${escapeHtml(p.name)}</div></td>
+        <td>${p.total||0}</td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="3">No data.</td></tr>`;
+  }
+
+  function renderTicker(shArr){
+    const track=$('#ticker-track');
+    const uniq = new Set();
+    const items = (shArr||[]).map(x=>{
+      const who = x.player || x.nickname || (x.email ? x.email.split('@')[0] : 'Anon');
+      const msg = x.message || x.text || '';
+      const sig = `${who}|${msg}`.trim();
+      if(!msg || uniq.has(sig)) return null;
+      uniq.add(sig);
+      return `<span><b>${escapeHtml(who)}:</b> ${escapeHtml(msg)}</span>`;
+    }).filter(Boolean);
+    track.innerHTML = items.join('');
+    if(track.textContent.trim().length<80 && items.length) track.innerHTML += track.innerHTML;
+  }
+
+  let LAST_ROWS_V=[], LAST_ROWS_M=[];
+  async function loadBothBoards(){
+    const all_scores = await fetchAllScores();
+    LAST_ROWS_V = groupSort(all_scores, 'vanilla');
+    renderRows('#sb-vanilla', LAST_ROWS_V);
+    LAST_ROWS_M = groupSort(all_scores, 'modded');
+    renderRows('#sb-modded', LAST_ROWS_M);
+    await loadShoutsAll();
+    updateWeeklyStatsFromBoards();
+  }
+
+  function updateWeeklyStatsFromBoards(){
+    const email = CURRENT_EMAIL;
+    function rankOf(rows){
+      if(!rows || !rows.length) return {rank:'—', total:0};
+      let rank='—', total=0;
+      rows.forEach((r,i)=>{ if ((r.email||'')===email){ rank = '#'+(i+1); total=r.total||0; }});
+      return {rank, total};
+    }
+    const v = rankOf(LAST_ROWS_V);
+    const m = rankOf(LAST_ROWS_M);
+    $('#stat-weekly').textContent = (v.total||0)+(m.total||0);
+    $('#stat-rank').textContent   = `${v.rank} / ${m.rank}`;
+  }
+
+  async function loadShoutsAll(){
+    try{
+      const res = await apiRequest('/shouts?limit=20');
+      if(res && res.ok){ const arr = await res.json(); renderTicker(arr); }
+    }catch(_){}
+  }
+
+  async function refreshEverythingNow(){
+    await loadProfile();
+    await loadTimeline();
+    await loadBothBoards();
+  }
+
+  (async function(){
+    await loadProfile();
+    await loadChallenges();
+    await loadTimeline();
+    await loadBothBoards();
+    setInterval(async ()=>{ await loadBothBoards(); }, 12*60*60*1000);
+  })();
+</script>
+</body>
+</html>s
